@@ -20,7 +20,7 @@ Perfect for scaring yourself, your friends, or your stream audience when they le
 First, clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/your-username/rewoon.git
+git clone https://github.com/thecapibara/rewoon.git
 cd rewoon
 ```
 
