@@ -1,6 +1,6 @@
 # Rewoon - The Random Scare Generator
 
-Ever wanted to add a little unexpected excitement to your Twitch streams or gaming sessions? **Rewoon** is a simple, lightweight, cross-platform app that randomly plays a sound of your choice to keep you on your toes.
+Ever wanted to add a little unexpected excitement to your streams, gaming or coding sessions? **Rewoon** is a simple, lightweight, cross-platform app that randomly plays a sound of your choice to keep you on your toes.
 
 Perfect for scaring yourself, your friends, or your stream audience when they least expect it. Set it, forget it, and wait for the screams!
 
