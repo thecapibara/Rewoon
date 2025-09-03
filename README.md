@@ -1,6 +1,6 @@
 # Rewoon - The Random Scare Generator
 
-Ever wanted to add a little unexpected excitement to your Twitch streams or gaming sessions? **Rewoon** is a simple, lightweight, cross-platform app that randomly plays a sound of your choice to keep you on your toes.
+Ever wanted to add a little unexpected excitement to your streams, gaming or coding sessions? **Rewoon** is a simple, lightweight, cross-platform app that randomly plays a sound of your choice to keep you on your toes.
 
 Perfect for scaring yourself, your friends, or your stream audience when they least expect it. Set it, forget it, and wait for the screams!
 
@@ -20,15 +20,29 @@ Perfect for scaring yourself, your friends, or your stream audience when they le
 First, clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/your-username/rewoon.git
+git clone https://github.com/thecapibara/rewoon.git
 cd rewoon
 ```
+For Linux you will need to grant rights executable rights to run.sh:
+ ```bash
+sudo chmod +x run.sh
+```
 
-Next, you need to install the necessary Python libraries. A `requirements.txt` file is included to make this easy.
+Next, you need to install the necessary Python libraries. A `requirements.txt` file is included to make this easy. 
 
+You can do in with run.sh or use this command (Linux):
+ ```bash
+./run.sh
+```
+
+For Windows open **run.bat**
+
+Or you can do it manually regardless of system: 
 ```bash
 pip install -r requirements.txt
 ```
+
+
 
 ## How to Use
 
@@ -38,7 +52,7 @@ The process is simple: run the script, choose a sound, and start the application
 
 1.  Open PowerShell or Command Prompt.
 2.  Navigate to the `rewoon` directory.
-3.  Run the application with the following command:
+3.  Run the application with **run.bat** or with the following command:
     ```powershell
     python rewoon.py
     ```
@@ -47,7 +61,7 @@ The process is simple: run the script, choose a sound, and start the application
 
 1.  Open your terminal.
 2.  Navigate to the `rewoon` directory.
-3.  Run the application with the following command:
+3.  Run the application with **run.sh** or with the following command:
     ```bash
     python3 rewoon.py
     ```
