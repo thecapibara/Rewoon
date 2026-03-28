@@ -5,11 +5,44 @@
 # -----------------------------
 
 import configparser
+import os
+import glob
 
 # --- Application State ---
-# --- CHANGED: Now a list to hold multiple sound files ---
 sound_file_paths = []
+video_file_paths = []
+scare_mode = "all" # Options: 'all', 'sound', 'video'
 is_running = False
+
+# Auto-load files from predetermined folders
+for ext in ('*.mp3', '*.wav'):
+    sound_file_paths.extend(glob.glob(os.path.join("assets", ext)))
+    sound_file_paths.extend(glob.glob(os.path.join("videos", ext)))
+for ext in ('*.mp4', '*.avi', '*.mkv', '*.mov'):
+    video_file_paths.extend(glob.glob(os.path.join("videos", ext)))
+
+# --- NEW: Auto-extract missing audio for videos ---
+moviepy_imported = False
+for video_path in video_file_paths:
+    base_path = os.path.splitext(video_path)[0]
+    expected_audio = base_path + ".mp3"
+    if not os.path.exists(expected_audio) and not os.path.exists(base_path + ".wav"):
+        print(f"Extracting missing audio for: {video_path}")
+        try:
+            if not moviepy_imported:
+                from moviepy import VideoFileClip
+                moviepy_imported = True
+                
+            clip = VideoFileClip(video_path)
+            if clip.audio is not None:
+                # write_audiofile is noisy, we can silence it with logger=None
+                clip.audio.write_audiofile(expected_audio, logger=None)
+                sound_file_paths.append(expected_audio) # Add to list so it is instantly available
+            clip.close()
+            print(f"Successfully extracted: {expected_audio}")
+        except Exception as e:
+            print(f"Failed to extract audio from {video_path}: {e}")
+
 
 # --- User-configurable Settings (DEFAULTS) ---
 min_delay = 10

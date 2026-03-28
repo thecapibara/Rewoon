@@ -1,4 +1,6 @@
-playsound
+playsound==1.2.2
 pystray
 Pillow
 ttkbootstrap
+opencv-python
+moviepy
