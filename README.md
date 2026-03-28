@@ -102,6 +102,7 @@ The project is organized into logical modules for easy maintenance and contribut
 rewoon/
 ├── assets/
 │   └── icon.png           # Customizable tray icon
+├── videos/                # Recommended folder to store video files
 ├── .gitignore             # Tells Git what files to ignore
 ├── config.ini             # User-facing settings
 ├── config.py              # Loads settings and holds app state
@@ -110,8 +111,26 @@ rewoon/
 ├── requirements.txt       # Project dependencies
 ├── rewoon.py              # Main entry point for the application
 ├── sound_player.py        # Core logic for playing sounds
+├── video_player.py        # Video playback logic
 └── ui.py                  # All GUI and system tray code
 ```
+
+## Video Screamers & Audio
+
+Rewoon now supports **fullscreen video screamers** via OpenCV!
+1. Drop your `.mp4` video into the `videos/` folder.
+2. **Auto-Extraction:** OpenCV only displays silent frames. But don't worry—upon the next launch, Rewoon will automatically extract the audio track from your video and save it as an `.mp3` right next to it. 
+3. The video and audio will perfectly sync up!
+
+*Note:* Video scares are automatically limited to **5 seconds**, and pure audio scares are limited to **30 seconds** to prevent them from overstaying their welcome.
+
+## The Built-in Timers
+
+You no longer need to edit configure files! 
+- The UI contains `Min Delay` and `Max Delay` fields.
+- Rewoon automatically enforces a **minimum of 10s**, a **maximum of 1200s**, and a **minimum 30s gap** between them.
+- Timers only count down *after* the previous screamer has finished playing—so they never overlap.
+
 
 ## License
 
