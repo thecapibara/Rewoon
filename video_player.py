@@ -1,138 +1,217 @@
-# -----------------------------
-# File: video_player.py
-# -----------------------------
-# Description: Handles fullscreen video playback with "Always on Top" functionality.
-# -----------------------------
+"""Fullscreen video screamer playback with native A/V sync and instant cancellation."""
 
-import cv2
-import time
-import platform
+from __future__ import annotations
+
+import logging
 import os
-import sys
+import shutil
 import subprocess
+import sys
 import threading
+import time
+from typing import Sequence
 
-def _bring_to_front(window_name):
-    """Attempt to bring the window to the front depending on the OS."""
+logger = logging.getLogger(__name__)
+
+_SUBPROCESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0) if sys.platform == "win32" else 0
+
+
+def detect_video_backend() -> str | None:
+    """Return the preferred installed CLI video backend ('ffplay' or 'mpv'), or None."""
+    for name in ("ffplay", "mpv"):
+        if shutil.which(name):
+            return name
+    return None
+
+
+def build_video_command(
+    video_path: str,
+    max_duration: int = 5,
+    volume: int = 100,
+    backend: str | None = None,
+) -> tuple[str, list[str]] | None:
+    """Build a fullscreen, always-on-top CLI playback command with native audio sync."""
+    chosen = backend or detect_video_backend()
+    if chosen is None:
+        return None
+
+    exe = shutil.which(chosen)
+    if not exe and backend is None:
+        return None
+    exe = exe or chosen
+
+    vol = max(0, min(100, int(volume)))
+    dur = max(1, int(max_duration))
+
+    if chosen == "ffplay":
+        return chosen, [
+            exe,
+            "-fs",
+            "-alwaysontop",
+            "-autoexit",
+            "-loglevel",
+            "quiet",
+            "-volume",
+            str(vol),
+            "-t",
+            str(dur),
+            str(video_path),
+        ]
+
+    if chosen == "mpv":
+        return chosen, [
+            exe,
+            "--fs",
+            "--ontop",
+            "--no-terminal",
+            "--really-quiet",
+            f"--volume={vol}",
+            f"--end={dur}",
+            str(video_path),
+        ]
+
+    raise ValueError(f"Unsupported video backend: {chosen!r}")
+
+
+def run_cancellable_process(
+    cmd: Sequence[str],
+    timeout: float,
+    stop_event: threading.Event | None = None,
+    poll_interval: float = 0.05,
+) -> bool:
+    """Run a subprocess that terminates immediately on `timeout` or `stop_event`."""
     try:
-        current_os = platform.system()
-        if current_os == "Windows":
-            import win32gui
-            import win32con
-            hwnd = win32gui.FindWindow(None, window_name)
-            if hwnd:
-                win32gui.SetWindowPos(hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0,
-                                      win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
-    except Exception as e:
+        proc = subprocess.Popen(
+            list(cmd),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=_SUBPROCESS_FLAGS,
+        )
+    except OSError as exc:
+        logger.error("Failed to launch media process %s: %s", cmd[0], exc)
+        return False
+
+    deadline = time.monotonic() + max(0.5, float(timeout))
+    try:
+        while proc.poll() is None:
+            if stop_event is not None and stop_event.is_set():
+                _terminate_process(proc)
+                return False
+            if time.monotonic() >= deadline:
+                _terminate_process(proc)
+                return True
+            time.sleep(poll_interval)
+        return True
+    finally:
+        if proc.poll() is None:
+            _terminate_process(proc)
+
+
+def _terminate_process(proc: subprocess.Popen) -> None:
+    """Gracefully terminate a subprocess, escalating to kill if needed."""
+    try:
+        proc.terminate()
+        proc.wait(timeout=1.0)
+    except subprocess.TimeoutExpired:
+        try:
+            proc.kill()
+            proc.wait(timeout=1.0)
+        except OSError:
+            pass
+    except OSError:
         pass
 
-def play_video_sync(video_path):
-    """
-    Plays a video in a fullscreen, topmost window.
-    Runs synchronously in the current process.
-    """
-    if not os.path.exists(video_path):
-        print(f"Error: Video file not found: {video_path}")
-        return
 
-    # Set cross-platform env var to avoid Wayland crashes
-    os.environ['QT_QPA_PLATFORM'] = 'xcb'
-
-    window_name = "RewoonScreamer"
-    
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    cv2.setWindowProperty(window_name, cv2.WND_PROP_TOPMOST, 1)
+def _play_video_opencv_fallback(
+    video_path: str,
+    max_duration: int = 5,
+    stop_event: threading.Event | None = None,
+) -> bool:
+    """Fallback fullscreen video player using OpenCV if neither ffplay nor mpv is installed."""
+    try:
+        import cv2
+    except ImportError:
+        logger.error(
+            "No video backend available. Install FFmpeg (ffplay), mpv, or opencv-python."
+        )
+        return False
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        cv2.destroyWindow(window_name)
-        return
-
-    # Attempt to force the window to the front after a slight delay
-    threading.Timer(0.1, _bring_to_front, args=[window_name]).start()
+        logger.error("OpenCV could not open video: %s", video_path)
+        return False
 
     fps = cap.get(cv2.CAP_PROP_FPS)
-    if fps == 0 or fps != fps: 
+    if fps <= 0 or fps > 120:
         fps = 30.0
-    
-    # Get screen resolution
-    screen_width, screen_height = 1920, 1080 
+    frame_duration = 1.0 / fps
+
+    window_name = "RewoonScare"
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    start_time = time.monotonic()
+    deadline = start_time + max(1, int(max_duration))
+    frame_idx = 0
+
     try:
-        import tkinter as tk
-        root = tk.Tk()
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-        root.destroy()
-    except Exception:
-        pass
+        while True:
+            if stop_event is not None and stop_event.is_set():
+                break
+            if time.monotonic() >= deadline:
+                break
 
-    # Look for a matching audio file (.mp3 or .wav) to play instead of the video file
-    audio_path = None
-    base_path = os.path.splitext(video_path)[0]
-    if os.path.exists(base_path + ".mp3"):
-        audio_path = base_path + ".mp3"
-    elif os.path.exists(base_path + ".wav"):
-        audio_path = base_path + ".wav"
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        try:
-            from playsound import playsound
-            audio_thread = threading.Thread(target=playsound, args=(audio_path,), daemon=True)
-            audio_thread.start()
-            # Give the system media player a fraction of a second to actually start playing
-            time.sleep(0.25)
-        except Exception as e:
-            print(f"Failed to play paired audio: {e}")
-    else:
-        print(f"Notice: No paired .mp3 or .wav found for {video_path}")
+            frame_idx += 1
+            target_time = start_time + (frame_idx * frame_duration)
+            remaining = target_time - time.monotonic()
 
-    start_time = time.time()
-    frame_count = 0
+            if remaining < -0.05:
+                # Drop stale frame, but STILL pump GUI events so Esc / 'q' always work.
+                key = cv2.waitKey(1) & 0xFF
+                if key in (ord("q"), 27):
+                    break
+                continue
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break 
-        
-        try:
-            frame = cv2.resize(frame, (screen_width, screen_height), interpolation=cv2.INTER_LINEAR)
-        except Exception:
-            pass
+            cv2.imshow(window_name, frame)
+            if frame_idx == 1:
+                try:
+                    cv2.setWindowProperty(window_name, cv2.WND_PROP_TOPMOST, 1)
+                except cv2.error:
+                    pass
 
-        frame_count += 1
-        expected_time = frame_count / fps
-        actual_time = time.time() - start_time
-        sleep_time = expected_time - actual_time
+            wait_ms = max(1, int(remaining * 1000)) if remaining > 0 else 1
+            key = cv2.waitKey(wait_ms) & 0xFF
+            if key in (ord("q"), 27):
+                break
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
 
-        if sleep_time > 0:
-            time.sleep(sleep_time)
-        elif sleep_time < -0.03:
-            # We are lagging behind the audio/time (more than 30ms).
-            # Drop the imshow for this frame to catch up visually.
-            continue
-        
-        cv2.imshow(window_name, frame)
+    return True
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break 
 
-    cap.release()
-    cv2.destroyWindow(window_name)
-    for _ in range(4):
-        cv2.waitKey(1)
+def play_video_fullscreen(
+    video_path: str,
+    max_duration: int = 5,
+    volume: int = 100,
+    stop_event: threading.Event | None = None,
+) -> bool:
+    """Play a video fullscreen with synced audio, capped to `max_duration` seconds."""
+    if not os.path.isfile(video_path):
+        logger.warning("Video file not found: %s", video_path)
+        return False
 
-def play_video_fullscreen(video_path, max_duration=5):
-    """
-    Starts the video playback in a SUBPROCESS to avoid GUI thread crashes.
-    Uses a strict timeout limit to enforce video length and prevent overlap.
-    """
-    try:
-        subprocess.run([sys.executable, __file__, video_path], timeout=max_duration)
-    except subprocess.TimeoutExpired:
-        pass # Expected if the video is longer than max_duration
+    built = build_video_command(video_path, max_duration=max_duration, volume=volume)
+    if built is not None:
+        backend, cmd = built
+        logger.info("Playing video via %s: %s", backend, video_path)
+        # Allow a brief startup margin beyond -t/--end before hard-killing
+        return run_cancellable_process(cmd, timeout=max_duration + 3.0, stop_event=stop_event)
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        play_video_sync(sys.argv[1])
-    else:
-        print("Usage: python video_player.py <path_to_video>")
+    logger.info("ffplay/mpv not found; falling back to OpenCV for %s", video_path)
+    return _play_video_opencv_fallback(video_path, max_duration=max_duration, stop_event=stop_event)
