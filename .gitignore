@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Logs & runtime artifacts
+nohup.out
+*.log
+
+# Testing & linters
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

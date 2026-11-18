@@ -1,6 +1,7 @@
-playsound==1.2.2
-pystray
-Pillow
-ttkbootstrap
-opencv-python
-moviepy
+# Core GUI & System Tray dependencies
+pystray>=0.19.5
+Pillow>=10.0.0
+ttkbootstrap>=1.10.1
+
+# Optional fallback audio backend (used only if ffplay/mpv are not installed)
+# pygame-ce>=2.5.0
