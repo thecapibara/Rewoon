@@ -1,11 +1,16 @@
-# -----------------------------
-# File: rewoon.py
-# -----------------------------
-# Description: The main entry point for the Rewoon application/script.
-# -----------------------------
+"""Entry point for the Rewoon desktop application."""
 
+import config
+import sound_player
 import ui
 
-if __name__ == "__main__":
-    app = ui.AppUI()
+
+def main() -> None:
+    config.setup_logging()
+    app_config = config.initialize()
+    app = ui.AppUI(app_config=app_config, scheduler=sound_player.scheduler)
     app.run()
+
+
+if __name__ == "__main__":
+    main()
