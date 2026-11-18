@@ -1,137 +1,105 @@
 # Rewoon - The Random Scare Generator
 
-Ever wanted to add a little unexpected excitement to your streams, gaming or coding sessions? **Rewoon** is a simple, lightweight, cross-platform app that randomly plays a sound of your choice to keep you on your toes.
-
-Perfect for scaring yourself, your friends, or your stream audience when they least expect it. Set it, forget it, and wait for the screams!
-
- <!-- Optional: Replace with a screenshot of your app -->
+Ever wanted to add a little unexpected excitement to your streams, gaming, or coding sessions? **Rewoon** is a lightweight, cross-platform desktop app that runs in your system tray and triggers random audio and fullscreen video screamers at randomized intervals.
 
 ## Features
 
--   **Cross-Platform**: Works flawlessly on Windows and major Linux distributions (Arch, Ubuntu, Fedora).
--   **System Tray Icon**: Hides in your system tray after setup, staying out of your way while it waits for the perfect moment to strike.
--   **Customizable Icon**: Easily add your own `icon.png` to the `assets` folder to personalize the tray icon.
--   **Low Memory Usage**: Built with Python's standard libraries to ensure a minimal impact on your system's performance.
--   **User-Friendly Configuration**: Easily change timings in the `config.ini` file without touching the code.
--   **Randomized Scares**: Plays the selected sound at completely random intervals. You'll never know when it's coming!
+- **Audio & Fullscreen Video Screamers**: Supports `.mp3`, `.wav`, `.ogg`, `.flac`, `.m4a` audio and `.mp4`, `.avi`, `.mkv`, `.mov`, `.webm` video (matched case-insensitively).
+- **Native A/V Sync**: Uses `ffplay` (FFmpeg) or `mpv` for fullscreen, always-on-top video playback with synchronized audio, volume control, and instant `Esc`/`q` dismissal — no temporary `.mp3` extraction required.
+- **System Tray Controls**: Non-blocking tray menu with **Show Window**, **Pause / Resume**, **Stop**, **Test Scare**, and **Exit**.
+- **Built-in Media Library & Volume Control**: Inspect, add, remove, or rescan media files directly in the GUI, adjust volume (`0–100%`), and preview scares immediately with **Test Scare**.
+- **Persistent Settings**: Saves timers, scare mode, volume, duration caps, and custom file paths in `config.ini`.
+- **Isolated Virtual Environment**: `run.sh` and `run.bat` automatically create and manage a local `.venv` (PEP 668 compliant on modern Linux).
 
-## Installation
+## Prerequisites
 
-First, clone the repository to your local machine:
+- **Python 3.10+** (with `tkinter` installed — on Fedora: `sudo dnf install python3-tkinter`, on Ubuntu/Debian: `sudo apt install python3-tk`, on Arch: `sudo pacman -S tk`).
+- **FFmpeg (`ffplay`)** or **`mpv`** on your `PATH` for audio/video playback:
+  - Fedora: `sudo dnf install ffmpeg`
+  - Ubuntu/Debian: `sudo apt install ffmpeg`
+  - Arch: `sudo pacman -S ffmpeg`
+  - Windows: `winget install Gyan.FFmpeg` (or install `mpv`)
+
+## Installation & Launch
 
 ```bash
-git clone https://github.com/thecapibara/rewoon.git
-cd rewoon
-```
-For Linux you will need to grant rights executable rights to run.sh:
- ```bash
-sudo chmod +x run.sh
+git clone https://github.com/thecapibara/Rewoon.git
+cd Rewoon
 ```
 
-Next, you need to install the necessary Python libraries. A `requirements.txt` file is included to make this easy. 
+### Linux / macOS
 
-You can do in with run.sh or use this command (Linux):
- ```bash
+```bash
+chmod +x run.sh
 ./run.sh
 ```
 
-For Windows open **run.bat**
+### Windows
 
-Or you can do it manually regardless of system: 
+Double-click **`run.bat`** or run it from PowerShell / Command Prompt.
+
+### Manual Setup
+
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+python rewoon.py
 ```
-
-
 
 ## How to Use
 
-The process is simple: run the script, choose a sound, and start the application. It will then run in the background from the system tray.
+1. Drop audio files into `assets/` and/or video files into `videos/`, or click **Add Sounds** / **Add Videos** in the GUI.
+2. Pick a **Scare Mode** (`All (Mixed)`, `Sound Only`, or `Video Only`).
+3. Adjust **Min Delay** (`>= 10s`), **Max Delay** (`<= 1200s`, at least a `30s` gap), and **Volume** (`0–100%`).
+4. Optionally click **Test Scare** to preview playback right away.
+5. Click **Start Rewoon** — the app minimizes to the system tray and waits for the next randomized interval.
+6. Right-click the tray icon at any time to **Show Window**, **Pause / Resume**, **Stop**, **Test Scare**, or **Exit**.
 
-### On Windows
+> Audio scares are capped at **30 seconds** and video scares at **5 seconds** by default (`max_sound_duration` / `max_video_duration` in `config.ini`). Press `Esc` or `q` to dismiss a fullscreen video early.
 
-1.  Open PowerShell or Command Prompt.
-2.  Navigate to the `rewoon` directory.
-3.  Run the application with **run.bat** or with the following command:
-    ```powershell
-    python rewoon.py
-    ```
+## Configuration (`config.ini`)
 
-### On Linux (Arch / Ubuntu / Fedora)
-
-1.  Open your terminal.
-2.  Navigate to the `rewoon` directory.
-3.  Run the application with **run.sh** or with the following command:
-    ```bash
-    python3 rewoon.py
-    ```
-
-After starting, select a sound file, click "Start", and the application window will hide, leaving only an icon in your system tray. To stop the application completely, right-click the tray icon and select "Exit".
-
-## Running Detached from the Terminal
-
-Once the application's GUI window is open, you can safely close the terminal/PowerShell window that launched it. However, for a cleaner start, you can launch the script so it never attaches to a terminal at all.
-
-Any output the script would normally print to the terminal (like our `print()` statements for debugging) will be redirected to a file named `nohup.out` when using the Linux method.
-
-| Method | When to Use It | How It Works |
-| :--- | :--- | :--- |
-| **Just close the terminal** | Works fine for this GUI app. | The OS treats the GUI window as its own independent process. |
-| `pythonw.exe rewoon.py` | **The best way on Windows.** | Runs the script as a windowed application from the start, never opening a console. |
-| `nohup python3 rewoon.py &` | **The standard way on Linux for any long-running process.** | Detaches the process from the terminal, preventing it from being closed. |
-
-## Configuration
-
-You can easily change the minimum and maximum time (in seconds) between scares without editing any code.
-
-1.  Open the `config.ini` file in a text editor.
-2.  Change the values of `min_delay` and `max_delay`.
-3.  Save the file. The changes will apply the next time you start Rewoon.
+Settings are managed automatically from the UI, or can be edited manually:
 
 ```ini
 [Settings]
 min_delay = 10
 max_delay = 600
+scare_mode = all
+volume = 100
+max_sound_duration = 30
+max_video_duration = 5
+custom_sounds = []
+custom_videos = []
 ```
 
 ## Project Structure
 
-The project is organized into logical modules for easy maintenance and contribution.
-
+```text
+Rewoon/
+├── assets/                # Bundled audio files & icon.png
+├── videos/                # Drop fullscreen video screamers here
+├── tests/
+│   └── test_rewoon.py     # Unit tests (unittest)
+├── .gitignore
+├── config.ini             # Persisted user settings
+├── config.py              # Thread-safe AppConfig & media discovery
+├── rewoon.py              # Application entry point
+├── requirements.txt       # Python GUI & tray dependencies
+├── run.sh                 # Linux/macOS .venv launcher
+├── run.bat                # Windows .venv launcher
+├── sound_player.py        # Audio playback backends & ScareScheduler
+├── video_player.py        # Fullscreen video playback backends
+└── ui.py                  # ttkbootstrap GUI & thread-safe pystray tray
 ```
-rewoon/
-├── assets/
-│   └── icon.png           # Customizable tray icon
-├── videos/                # Recommended folder to store video files
-├── .gitignore             # Tells Git what files to ignore
-├── config.ini             # User-facing settings
-├── config.py              # Loads settings and holds app state
-├── LICENSE                # MIT License
-├── README.md              # You are here!
-├── requirements.txt       # Project dependencies
-├── rewoon.py              # Main entry point for the application
-├── sound_player.py        # Core logic for playing sounds
-├── video_player.py        # Video playback logic
-└── ui.py                  # All GUI and system tray code
+
+## Running Tests
+
+```bash
+python3 -m unittest discover -s tests -v
 ```
-
-## Video Screamers & Audio
-
-Rewoon now supports **fullscreen video screamers** via OpenCV!
-1. Drop your `.mp4` video into the `videos/` folder.
-2. **Auto-Extraction:** OpenCV only displays silent frames. But don't worry—upon the next launch, Rewoon will automatically extract the audio track from your video and save it as an `.mp3` right next to it. 
-3. The video and audio will perfectly sync up!
-
-*Note:* Video scares are automatically limited to **5 seconds**, and pure audio scares are limited to **30 seconds** to prevent them from overstaying their welcome.
-
-## The Built-in Timers
-
-You no longer need to edit configure files! 
-- The UI contains `Min Delay` and `Max Delay` fields.
-- Rewoon automatically enforces a **minimum of 10s**, a **maximum of 1200s**, and a **minimum 30s gap** between them.
-- Timers only count down *after* the previous screamer has finished playing—so they never overlap.
-
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
